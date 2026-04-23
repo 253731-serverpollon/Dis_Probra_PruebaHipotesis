@@ -49,12 +49,11 @@ def _call_gemini(prompt: str) -> str:
     try:
         import google.generativeai as genai
         genai.configure(api_key=st.session_state["gemini_key"])
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
         return f"❌ Error al llamar a Gemini: {e}"
-
 
 def _show_prompt(prompt: str):
     with st.expander("📋 Prompt enviado a Gemini"):
