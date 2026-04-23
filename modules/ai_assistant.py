@@ -1,3 +1,6 @@
+# Módulo de asistente IA - versión 1.0
+# Integración con Google Gemini para interpretación estadística
+
 import streamlit as st
 import numpy as np
 import pandas as pd

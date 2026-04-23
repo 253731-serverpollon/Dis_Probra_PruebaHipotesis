@@ -1,3 +1,7 @@
+# Módulo de prueba Z de hipótesis - versión 1.0
+# Supuestos: sigma conocida, n >= 30
+# Tipos: bilateral, cola izquierda, cola derecha
+
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -38,23 +42,22 @@ def render_hypothesis_test():
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Parameter panel ────────────────────────────────────────────────────────
     st.markdown("### ⚙️ Parámetros de la prueba")
 
     col1, col2 = st.columns(2)
     with col1:
         mu0   = st.number_input("Hipótesis nula H₀: μ =", value=round(x_bar, 2), step=0.1,
                                  help="Valor de la media poblacional bajo H₀")
-        sigma = st.number_input("Desv. estándar poblacional (σ)", 
+        sigma = st.number_input("Desv. estándar poblacional (σ)",
                                  value=float(st.session_state.get("sigma_known", np.std(data, ddof=1))),
                                  min_value=0.0001, step=0.1,
                                  help="Si no se conoce σ, usa la desviación muestral como aproximación (n≥30)")
-        alpha = st.select_slider("Nivel de significancia (α)", 
+        alpha = st.select_slider("Nivel de significancia (α)",
                                   options=[0.01, 0.025, 0.05, 0.10],
                                   value=0.05)
     with col2:
         tail = st.radio("Tipo de prueba",
-                         ["Bilateral (H₁: μ ≠ μ₀)", 
+                         ["Bilateral (H₁: μ ≠ μ₀)",
                           "Cola izquierda (H₁: μ < μ₀)",
                           "Cola derecha (H₁: μ > μ₀)"])
 
@@ -69,7 +72,6 @@ def render_hypothesis_test():
         </div>
         """, unsafe_allow_html=True)
 
-    # Hypothesis display
     tail_key = "bilateral" if "Bilateral" in tail else ("left" if "izquierda" in tail else "right")
     h1_text = {
         "bilateral": f"H₁: μ ≠ {mu0}",
@@ -90,12 +92,10 @@ def render_hypothesis_test():
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Run test ───────────────────────────────────────────────────────────────
     if st.button("▶ Ejecutar Prueba Z", use_container_width=True):
         se = sigma / np.sqrt(n)
         z  = (x_bar - mu0) / se
 
-        # Critical values & p-value
         if tail_key == "bilateral":
             z_crit = stats.norm.ppf(1 - alpha / 2)
             p_val  = 2 * (1 - stats.norm.cdf(abs(z)))
@@ -112,7 +112,6 @@ def render_hypothesis_test():
             reject = z > z_crit
             region_text = f"Z > {z_crit:.4f}"
 
-        # ── Store results for AI module ────────────────────────────────────────
         st.session_state["z_results"] = {
             "z": z, "z_crit": z_crit, "p_val": p_val,
             "reject": reject, "tail": tail_key,
@@ -121,7 +120,6 @@ def render_hypothesis_test():
             "region_text": region_text,
         }
 
-        # ── Metrics ────────────────────────────────────────────────────────────
         st.markdown("### 📊 Resultados")
         m1, m2, m3, m4 = st.columns(4)
         for col, (lbl, val) in zip(
@@ -138,7 +136,6 @@ def render_hypothesis_test():
                 </div>
                 """, unsafe_allow_html=True)
 
-        # ── Decision banner ────────────────────────────────────────────────────
         st.markdown("<br>", unsafe_allow_html=True)
         if reject:
             st.markdown(f"""
@@ -155,7 +152,6 @@ def render_hypothesis_test():
             </div>
             """, unsafe_allow_html=True)
 
-        # ── Interpretation ─────────────────────────────────────────────────────
         st.markdown("### 💬 Interpretación")
         if reject:
             interp = (f"Con un nivel de significancia α = {alpha}, existe evidencia estadística "
@@ -169,7 +165,6 @@ def render_hypothesis_test():
                       f"y el p-value ({p_val:.5f}) es mayor o igual que α.")
         st.info(interp)
 
-        # ── Visual: Normal curve with rejection region ─────────────────────────
         st.markdown("### 📉 Curva Normal con Regiones de Rechazo")
         fig = _plot_z_curve(z, z_crit, alpha, tail_key, p_val, reject)
         st.pyplot(fig, use_container_width=True)
@@ -177,8 +172,49 @@ def render_hypothesis_test():
 
         st.success("💡 Ve al módulo **Asistente IA** para obtener una explicación detallada de Gemini.")
 
+    # Calculadora de tamaño de muestra (siempre visible)
+    render_sample_size_calculator()
 
-# ──────────────────────────────────────────────────────────────────────────────
+
+def render_sample_size_calculator():
+    st.markdown("---")
+    st.markdown("### 🔢 Calculadora de Tamaño de Muestra")
+    st.markdown("""
+    <div class="stat-card">
+    <b style="font-family:'Space Mono',monospace; color:#6c63ff;">¿Cuántas observaciones necesito?</b><br>
+    <span style="color:#7a7d94; font-size:13px;">
+    Calcula el n mínimo para detectar una diferencia significativa.
+    </span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        alpha_n = st.selectbox("Nivel de significancia (α)", [0.01, 0.05, 0.10], index=1, key="alpha_n")
+    with c2:
+        power = st.selectbox("Potencia estadística (1-β)", [0.80, 0.85, 0.90, 0.95], index=0, key="power_n")
+    with c3:
+        effect = st.number_input("Tamaño del efecto (δ/σ)", value=0.5, min_value=0.01, step=0.05,
+                                  help="Diferencia que deseas detectar dividida entre σ")
+
+    if st.button("📐 Calcular n mínimo", use_container_width=True, key="btn_n"):
+        z_alpha = stats.norm.ppf(1 - alpha_n / 2)
+        z_beta  = stats.norm.ppf(power)
+        n_min   = int(np.ceil(((z_alpha + z_beta) / effect) ** 2))
+
+        st.markdown(f"""
+        <div class="metric-box" style="margin-top:16px;">
+          <div class="metric-label">Tamaño de muestra mínimo recomendado</div>
+          <div class="metric-value" style="font-size:36px;">{n_min}</div>
+          <div style="color:#7a7d94; font-size:12px; font-family:'Space Mono',monospace; margin-top:8px;">
+            α = {alpha_n} · Potencia = {power} · δ/σ = {effect}
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.info(f"Con n = **{n_min}** observaciones tienes una potencia del **{int(power*100)}%** "
+                f"para detectar un efecto de tamaño **{effect}** con α = **{alpha_n}**.")
+
 
 def _plot_z_curve(z_stat, z_crit, alpha, tail, p_val, reject):
     fig, ax = plt.subplots(figsize=(12, 5), facecolor="#0d0f17")
@@ -187,11 +223,9 @@ def _plot_z_curve(z_stat, z_crit, alpha, tail, p_val, reject):
     xs = np.linspace(-4.5, 4.5, 600)
     ys = stats.norm.pdf(xs)
 
-    # Base curve
     ax.plot(xs, ys, color=ACCENT, linewidth=2.5, zorder=3)
     ax.fill_between(xs, ys, alpha=0.08, color=ACCENT)
 
-    # ── Rejection regions ──────────────────────────────────────────────────────
     def fill_reject(from_x, to_x):
         mask = (xs >= from_x) & (xs <= to_x)
         ax.fill_between(xs[mask], ys[mask], color=ACCENT2, alpha=0.55, zorder=2)
@@ -211,13 +245,12 @@ def _plot_z_curve(z_stat, z_crit, alpha, tail, p_val, reject):
         ax.axvline(z_crit, color=ACCENT2, linewidth=1.5, linestyle="--", alpha=0.8)
         ax.text(z_crit, -0.012, f"{z_crit:.3f}", ha="center", fontsize=8,
                 color=ACCENT2, fontfamily="monospace")
-    else:  # right
+    else:
         fill_reject(z_crit, 4.5)
         ax.axvline(z_crit, color=ACCENT2, linewidth=1.5, linestyle="--", alpha=0.8)
         ax.text(z_crit, -0.012, f"{z_crit:.3f}", ha="center", fontsize=8,
                 color=ACCENT2, fontfamily="monospace")
 
-    # ── Z statistic line ───────────────────────────────────────────────────────
     z_plot = max(min(z_stat, 4.4), -4.4)
     stat_color = ACCENT2 if reject else GREEN
     ax.axvline(z_plot, color=stat_color, linewidth=2.5, zorder=5)
@@ -229,7 +262,6 @@ def _plot_z_curve(z_stat, z_crit, alpha, tail, p_val, reject):
                 ha="center",
                 arrowprops=dict(arrowstyle="->", color=stat_color, lw=1.5))
 
-    # ── Labels ─────────────────────────────────────────────────────────────────
     ax.set_xlabel("Estadístico Z", fontsize=11)
     ax.set_ylabel("Densidad", fontsize=11)
     ax.set_title(f"Distribución Normal Estándar — Prueba Z ({'bilateral' if tail=='bilateral' else 'una cola'})",
