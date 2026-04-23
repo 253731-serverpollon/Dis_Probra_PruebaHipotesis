@@ -1,3 +1,7 @@
+# Módulo de visualizaciones estadísticas - versión 1.0
+# Incluye: histograma, KDE, boxplot, QQ-plot y pruebas de normalidad
+# Autor: tu nombre
+
 import streamlit as st
 import numpy as np
 import pandas as pd
