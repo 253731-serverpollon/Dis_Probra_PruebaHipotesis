@@ -1,3 +1,6 @@
+# Módulo de carga de datos - versión 1.0
+# Soporta CSV y generación de datos sintéticos
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,7 +11,6 @@ def render_data_loader():
 
     tab1, tab2 = st.tabs(["📁 Cargar CSV", "🎲 Datos Sintéticos"])
 
-    # ── Tab 1: CSV ─────────────────────────────────────────────────────────────
     with tab1:
         st.markdown("""
         <div class="stat-card">
@@ -31,13 +33,11 @@ def render_data_loader():
                     st.session_state["data"] = df[col_sel].dropna().values
                     st.session_state["data_name"] = col_sel
                     st.session_state["data_source"] = f"CSV: {uploaded.name} — columna: {col_sel}"
-
                     st.dataframe(df[numeric_cols].describe().round(4), use_container_width=True)
                     st.info(f"🎯 Variable seleccionada: **{col_sel}** — n = {len(st.session_state['data'])}")
             except Exception as e:
                 st.error(f"Error al leer el archivo: {e}")
 
-    # ── Tab 2: Synthetic ───────────────────────────────────────────────────────
     with tab2:
         st.markdown("""
         <div class="stat-card">
@@ -73,7 +73,7 @@ def render_data_loader():
             elif dist_type == "Exponencial":
                 data = rng.exponential(std_val, n) + (mean_val - std_val)
                 label = "Exponencial"
-            else:  # Bimodal
+            else:
                 d1 = rng.normal(mean_val - std_val, std_val * 0.5, n // 2)
                 d2 = rng.normal(mean_val + std_val, std_val * 0.5, n - n // 2)
                 data = np.concatenate([d1, d2])
@@ -82,12 +82,11 @@ def render_data_loader():
             st.session_state["data"]        = data
             st.session_state["data_name"]   = label
             st.session_state["data_source"] = f"Sintético — {label} | μ={mean_val}, σ={std_val}, n={n}"
-            st.session_state["sigma_known"] = std_val  # useful default for Z-test
+            st.session_state["sigma_known"] = std_val
 
             st.success(f"✅ Datos generados: **{label}** — n = {n}")
             _show_quick_stats(data)
 
-    # ── Preview if data loaded ─────────────────────────────────────────────────
     if "data" in st.session_state:
         st.markdown("---")
         st.markdown("### 🔍 Vista rápida")
@@ -104,12 +103,12 @@ def _show_quick_stats(data: np.ndarray):
 
     cols = st.columns(6)
     metrics = [
-        ("n",        f"{n:,}"),
-        ("Media",    f"{mean:.4f}"),
-        ("Mediana",  f"{med:.4f}"),
-        ("Desv. Std",f"{s:.4f}"),
-        ("Sesgo",    f"{skew:.4f}"),
-        ("Curtosis", f"{kurt:.4f}"),
+        ("n",         f"{n:,}"),
+        ("Media",     f"{mean:.4f}"),
+        ("Mediana",   f"{med:.4f}"),
+        ("Desv. Std", f"{s:.4f}"),
+        ("Sesgo",     f"{skew:.4f}"),
+        ("Curtosis",  f"{kurt:.4f}"),
     ]
     for col, (label, value) in zip(cols, metrics):
         with col:
@@ -119,3 +118,7 @@ def _show_quick_stats(data: np.ndarray):
               <div class="metric-value" style="font-size:20px;">{value}</div>
             </div>
             """, unsafe_allow_html=True)
+
+          
+
+#nueva modificacion del data CSV
